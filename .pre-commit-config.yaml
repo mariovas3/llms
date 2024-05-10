@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace  # removes whitespace at end of lines;
+      - id: check-yaml  # check yaml syntax by loading all yaml files;
+      - id: check-json  # check json syntax by loading all json files;
+      - id: check-merge-conflict  # check for files with merge-conflict strings;
+        args: ['--assume-in-merge']  # run even if not explicitly in a merge;
+      - id: check-added-large-files  # check no large files have been added;
+        args: ['--maxkb=10240']  # 10M allowance;
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        args: ["-l", "79", "-v", "-t", "py311"]
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "-l", "79"]

@@ -1,0 +1,11 @@
+*__pycache__
+wandb
+notebooks
+lightning_logs
+data/downloaded
+data/processed
+data/corpora
+data/raw
+google_drive_credentials.json
+token.json
+*.zip
