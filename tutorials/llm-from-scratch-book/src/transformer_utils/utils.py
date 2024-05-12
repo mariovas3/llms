@@ -117,19 +117,21 @@ class MultiHeadAtt(nn.Module):
         m = memory.size(-2)
         assert d_model == self.d_model
         # tgt is (B, n, d_model)
-        Q = self.Uq(tgt).view(B, n, self.num_heads, self.dk).transpose(-3, -2)
+        Q = (
+            self.Uq(tgt).view(B, n, self.num_heads, self.dk).transpose(-3, -2)
+        )  # (B, H, n, dk)
         K = (
             self.Uk(memory)
-            .view(B, m, self.num_heads, self.dk)
-            .transpose(-3, -2)
-        )
+            .transpose(-1, -2)
+            .view(B, self.num_heads, self.dk, m)
+        )  # (B, H, dk, m)
         V = (
             self.Uv(memory)
             .view(B, m, self.num_heads, self.dk)
             .transpose(-3, -2)
-        )
+        )  # (B, H, m, dk)
 
-        A = (Q / sqrt(self.dk)) @ K.transpose(-1, -2)
+        A = Q @ K / sqrt(self.dk)  # (B, H, n, m)
         if tgt_mask is not None:
             merged_mask = merge_masks(tgt_mask, tgt_key_pad_mask)
             A.masked_fill_(merged_mask, float("-inf"))
