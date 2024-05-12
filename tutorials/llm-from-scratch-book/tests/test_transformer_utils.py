@@ -1,7 +1,7 @@
 from src.transformer_utils import utils
 
 
-def test_pos_embeds(dummy_embedded_batch):
-    pos_embed = utils.PosEmbed(dummy_embedded_batch.size(-2) + 5, dummy_embedded_batch.size(-1))
-    out = pos_embed(dummy_embedded_batch)
-    assert out.shape == dummy_embedded_batch.shape
+def test_pos_embeds(batch_3_5_7):
+    pos_embed = utils.PosEmbed(batch_3_5_7.size(-2) + 5, batch_3_5_7.size(-1))
+    out = pos_embed(batch_3_5_7)
+    assert out.shape == batch_3_5_7.shape
