@@ -99,7 +99,7 @@ class NaiveMHA(nn.Module):
 
 
 class MultiHeadAtt(nn.Module):
-    def __init__(self, d_model, num_heads, qkv_bias=False):
+    def __init__(self, d_model, num_heads, dropout=0.0, qkv_bias=False):
         super().__init__()
         self.dk = d_model // num_heads
         assert (
@@ -111,6 +111,7 @@ class MultiHeadAtt(nn.Module):
         self.Uk = nn.Linear(d_model, d_model, bias=qkv_bias)
         self.Uv = nn.Linear(d_model, d_model, bias=qkv_bias)
         self.Uo = nn.Linear(d_model, d_model)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, tgt, memory, tgt_mask=None, tgt_key_pad_mask=None):
         B, n, d_model = tgt.shape
@@ -135,6 +136,6 @@ class MultiHeadAtt(nn.Module):
         if tgt_mask is not None:
             merged_mask = merge_masks(tgt_mask, tgt_key_pad_mask)
             A.masked_fill_(merged_mask, float("-inf"))
-        A = torch.softmax(A, -1)
+        A = self.dropout(torch.softmax(A, -1))
         messages = (A @ V).transpose(-3, -2).contiguous().view(B, n, -1)
         return self.Uo(messages)
