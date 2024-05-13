@@ -1,5 +1,6 @@
 from copy import deepcopy
 from math import sqrt
+from typing import Literal, Optional
 
 import torch
 from torch import nn
@@ -139,3 +140,68 @@ class MultiHeadAtt(nn.Module):
         A = self.dropout(torch.softmax(A, -1))
         messages = (A @ V).transpose(-3, -2).contiguous().view(B, n, -1)
         return self.Uo(messages)
+
+
+class MLP(nn.Module):
+    def __init__(
+        self, in_dim, ffn_hidden, activation: Literal["gelu", "relu"]
+    ):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, ffn_hidden),
+            nn.GELU() if activation == "gelu" else nn.ReLU(),
+            nn.Linear(ffn_hidden, in_dim),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class ResConnection(nn.Module):
+    def __init__(self, in_dim, dropout=0.0):
+        super().__init__()
+        self.norm = nn.LayerNorm(in_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, residual):
+        return self.norm(x + self.dropout(residual))
+
+
+class TransformerDecoderLayer(nn.Module):
+    def __init__(
+        self,
+        d_model,
+        num_heads,
+        ffn_hidden,
+        activation: Literal["gelu", "relu"],
+        dropout=0.0,
+        qkv_bias=False,
+    ):
+        super().__init__()
+        self.mha = MultiHeadAtt(d_model, num_heads, dropout, qkv_bias)
+        self.res1 = ResConnection(d_model, dropout)
+        self.mlp = MLP(d_model, ffn_hidden, activation)
+        self.res2 = ResConnection(d_model, dropout)
+
+    def forward(self, tgt, memory, tgt_mask=None, tgt_key_pad_mask=None):
+        tgt = self.res1(tgt, self.mha(tgt, memory, tgt_mask, tgt_key_pad_mask))
+        return self.res2(tgt, self.mlp(tgt))
+
+
+class TransformerDecoder(nn.Module):
+    def __init__(
+        self, decoder_layer, num_layers, pre_norm: Optional[nn.Module] = None
+    ):
+        super().__init__()
+        self.layers = get_clones(decoder_layer, num_layers)
+        self.pre_norm = pre_norm
+
+    def forward(self, tgt, memory=None, tgt_mask=None, tgt_key_pad_mask=None):
+        if self.pre_norm is not None:
+            tgt = self.pre_norm(tgt)
+        for l in self.layers:
+            if memory is None:
+                tgt = l(tgt, tgt, tgt_mask, tgt_key_pad_mask)
+            else:
+                tgt = l(tgt, memory, tgt_mask, tgt_key_pad_mask)
+        return tgt
