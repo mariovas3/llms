@@ -1,4 +1,58 @@
+from math import sqrt
+
 import torch
+from src.models.utils import get_clones, merge_masks
+from torch import nn
+
+
+class SingleHeadAtt(nn.Module):
+    """
+    Outputs A @ V.
+
+    Only for testing purposes.
+    """
+
+    def __init__(self, d_model, dk, dropout=0.0, qkv_bias=False):
+        super().__init__()
+        self.Uq = nn.Linear(d_model, dk, bias=qkv_bias)
+        self.Uk = nn.Linear(d_model, dk, bias=qkv_bias)
+        self.Uv = nn.Linear(d_model, dk, bias=qkv_bias)
+        self.d_model = d_model
+        self.dk = dk
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, tgt, memory, tgt_mask=None, tgt_key_pad_mask=None):
+        Q, K, V = self.Uq(tgt), self.Uk(memory), self.Uv(memory)
+        A = Q @ K.transpose(-1, -2) / sqrt(self.dk)
+        if tgt_mask is not None:
+            merged_mask = merge_masks(tgt_mask, tgt_key_pad_mask)
+            A.masked_fill_(merged_mask, float("-inf"))
+        A = self.dropout(torch.softmax(A, -1))
+        return A @ V
+
+
+class NaiveMHA(nn.Module):
+    def __init__(self, num_heads, d_model, dropout=0.0, qkv_bias=False):
+        super().__init__()
+        self.dk = d_model // num_heads
+        assert (
+            self.dk * num_heads == d_model
+        ), "d_model must be a multiple of num_heads"
+        self.heads = get_clones(
+            SingleHeadAtt(d_model, self.dk, dropout, qkv_bias), num_heads
+        )
+        self.Uo = nn.Linear(d_model, d_model)
+
+    def forward(self, tgt, memory, tgt_mask=None, tgt_key_pad_mask=None):
+        return self.Uo(
+            torch.cat(
+                [
+                    h(tgt, memory, tgt_mask, tgt_key_pad_mask)
+                    for h in self.heads
+                ],
+                -1,
+            )
+        )
 
 
 def copy_mha_weights(naive_mha, parallel_mha):

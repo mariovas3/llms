@@ -13,7 +13,7 @@ def test_parallel_mha_no_bias():
     tgt = torch.randn(3, 5, 8)
     memory = torch.randn(3, 7, 8)
     qkv_bias = False
-    naive_mha = utils.NaiveMHA(num_heads=2, d_model=8, qkv_bias=qkv_bias)
+    naive_mha = tu.NaiveMHA(num_heads=2, d_model=8, qkv_bias=qkv_bias)
     tgt_mask = utils.get_subsequent_mask(7)[: tgt.size(-2), : memory.size(-2)]
     out1 = naive_mha(tgt, memory, tgt_mask)
     assert out1.shape == tgt.shape
@@ -30,7 +30,7 @@ def test_parallel_mha_with_bias():
     tgt = torch.randn(3, 5, 8)
     memory = torch.randn(3, 7, 8)
     qkv_bias = True
-    naive_mha = utils.NaiveMHA(num_heads=2, d_model=8, qkv_bias=qkv_bias)
+    naive_mha = tu.NaiveMHA(num_heads=2, d_model=8, qkv_bias=qkv_bias)
     tgt_mask = utils.get_subsequent_mask(7)[: tgt.size(-2), : memory.size(-2)]
     out1 = naive_mha(tgt, memory, tgt_mask)
     assert out1.shape == tgt.shape
