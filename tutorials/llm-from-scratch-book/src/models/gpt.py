@@ -31,10 +31,15 @@ class GPT(nn.Module):
         self.mask = utils.get_subsequent_mask(context_length)
         self.classification_head = nn.Linear(d_model, vocab_size)
 
-    def forward(self, tgt, tgt_key_pad_mask=None):
+    def forward(self, tgt, tgt_key_pad_mask=None, inference=False):
         tgt = self.drop_embed(self.pos_embeddings(self.embeddings(tgt)))
         tgt_mask = self.mask[: tgt.size(-2), : tgt.size(-2)]
         tgt = self.decoder(
             tgt, tgt_mask=tgt_mask, tgt_key_pad_mask=tgt_key_pad_mask
         )
+        if inference:
+            # predict token after last given token;
+            # returns (B, vocab_size)
+            return self.classification_head(tgt[:, -1, :])
+        # returns (B, seq_len, vocab_size)
         return self.classification_head(tgt)
