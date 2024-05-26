@@ -12,7 +12,7 @@ class PosEmbed(nn.Module):
         self.embed = nn.Embedding(num_embeds, embed_dim)
 
     def forward(self, x):
-        return x + self.embed(torch.tensor(range(x.size(-2))))
+        return x + self.embed(torch.arange(x.size(-2)))
 
 
 def get_subsequent_mask(size):
@@ -86,7 +86,11 @@ class MultiHeadAtt(nn.Module):
 
         A = Q @ K / sqrt(self.dk)  # (B, H, n, m)
         if tgt_mask is not None:
-            merged_mask = merge_masks(tgt_mask, tgt_key_pad_mask)
+            merged_mask = merge_masks(
+                attn_mask=tgt_mask,
+                num_heads=self.num_heads,
+                key_padding_mask=tgt_key_pad_mask,
+            )
             A.masked_fill_(merged_mask, float("-inf"))
         A = self.dropout(torch.softmax(A, -1))
         messages = (A @ V).transpose(-3, -2).contiguous().view(B, n, -1)
@@ -100,7 +104,7 @@ class MLP(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(in_dim, ffn_hidden),
-            nn.GELU() if activation == "gelu" else nn.ReLU(),
+            nn.GELU(approximate="tanh") if activation == "gelu" else nn.ReLU(),
             nn.Linear(ffn_hidden, in_dim),
         )
 
