@@ -2,6 +2,16 @@
 
 *This part of the repo is motivated by Sebastian Raschka's book "Build a Large Language Model from Scratch".*
 
+
+## Data:
+The data are the raw text of <a href="https://en.wikisource.org/wiki/The_Verdict">"The Verdict"</a>. I used this dataset to test that my model can overfit it.
+
+## Training:
+* Open a terminal session and run `export PYTHONPATH=.` and navigate to `llms-from-scratch-book`. From there run:
+```bash
+python training/run_experiment.py --context_length=256 --max_epochs=10 --val_check_interval=5 --val_loop_iters=1 --pre_norm
+```
+
 ## Lessons learned:
 
 ### MHA
