@@ -8,7 +8,6 @@ class GPT(nn.Module):
     def __init__(
         self,
         num_layers,
-        pre_norm,
         vocab_size,
         context_length,
         d_model,
@@ -17,14 +16,28 @@ class GPT(nn.Module):
         activation: Literal["gelu", "relu"],
         dropout=0.0,
         qkv_bias=False,
+        norm_first=False,
+        pre_norm=False,
     ):
         super().__init__()
-        decoder_layer = utils.TransformerDecoderLayer(
-            d_model, num_heads, ffn_hidden, activation, dropout, qkv_bias
-        )
-        pre_norm = nn.LayerNorm(d_model) if pre_norm else None
+        self.pre_norm = pre_norm
+        # need to norm again before classification head
+        # if pre norm; see https://arxiv.org/pdf/2002.04745
+        if pre_norm:
+            self.last_norm = nn.LayerNorm(d_model)
+
+        # see if should start with layer_norm(tgt) instead of tgt;
+        norm0 = nn.LayerNorm(d_model) if norm_first else None
         self.decoder = utils.TransformerDecoder(
-            decoder_layer, num_layers, pre_norm
+            num_layers=num_layers,
+            norm0=norm0,
+            d_model=d_model,
+            num_heads=num_heads,
+            ffn_hidden=ffn_hidden,
+            activation=activation,
+            dropout=dropout,
+            qkv_bias=qkv_bias,
+            pre_norm=pre_norm,
         )
         self.embeddings = nn.Embedding(vocab_size, d_model)
         self.pos_embeddings = utils.PosEmbed(context_length, d_model)
@@ -38,6 +51,8 @@ class GPT(nn.Module):
         tgt = self.decoder(
             tgt, tgt_mask=tgt_mask, tgt_key_pad_mask=tgt_key_pad_mask
         )
+        if self.pre_norm:
+            tgt = self.last_norm(tgt)
         if inference:
             # predict token after last given token;
             # returns (B, vocab_size)
@@ -87,7 +102,16 @@ class GPT(nn.Module):
             default=768 * 4,
         )
         parser.add_argument("--activation", type=str, default="gelu")
-        parser.add_argument("--pre_norm", action="store_true")
+        parser.add_argument(
+            "--pre_norm",
+            action="store_true",
+            help="Pre norming or post norming.",
+        )
+        parser.add_argument(
+            "--norm_first",
+            action="store_true",
+            help="before any forward passes, do tgt = layer_norm(tgt).",
+        )
         return parser
 
 
@@ -104,7 +128,8 @@ if __name__ == "__main__":
         p.numel() for p in model.classification_head.parameters()
     )
     print(
-        f"n_params: {n_params / 1e6}M\nless classification head: {less_classification_head / 1e6}M"
+        f"n_params: {n_params / 1e6}M\nless "
+        f"classification head: {less_classification_head / 1e6}M"
     )
     block_weight = 0
     for key, val in model.named_parameters():
