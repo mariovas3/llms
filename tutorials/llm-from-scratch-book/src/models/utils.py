@@ -122,7 +122,40 @@ class ResConnection(nn.Module):
         return self.norm(x + self.dropout(residual))
 
 
-class TransformerDecoderLayer(nn.Module):
+class PreNormLogic(nn.Module):
+    def __init__(self, in_dim, mha, mlp, dropout=0.0):
+        super().__init__()
+        self.drop1 = nn.Dropout(dropout)
+        self.drop2 = nn.Dropout(dropout)
+        self.mha = mha
+        self.mlp = mlp
+        self.norm1 = nn.LayerNorm(in_dim)
+        self.norm2 = nn.LayerNorm(in_dim)
+
+    def forward(self, tgt, tgt_mask=None, tgt_key_pad_mask=None):
+        resid = self.norm1(tgt)
+        resid = self.mha(resid, resid, tgt_mask, tgt_key_pad_mask)
+        tgt = tgt + self.drop1(resid)
+
+        resid = self.norm2(tgt)
+        resid = self.mlp(resid)
+        return tgt + self.drop2(resid)
+
+
+class PostNormLogic(nn.Module):
+    def __init__(self, in_dim, mha, mlp, dropout=0.0):
+        super().__init__()
+        self.mha = mha
+        self.mlp = mlp
+        self.res1 = ResConnection(in_dim, dropout)
+        self.res2 = ResConnection(in_dim, dropout)
+
+    def forward(self, tgt, tgt_mask=None, tgt_key_pad_mask=None):
+        tgt = self.res1(tgt, self.mha(tgt, tgt, tgt_mask, tgt_key_pad_mask))
+        return self.res2(tgt, self.mlp(tgt))
+
+
+class CausalSALayer(nn.Module):
     def __init__(
         self,
         d_model,
@@ -131,32 +164,41 @@ class TransformerDecoderLayer(nn.Module):
         activation: Literal["gelu", "relu"],
         dropout=0.0,
         qkv_bias=False,
+        pre_norm=False,
     ):
         super().__init__()
-        self.mha = MultiHeadAtt(d_model, num_heads, dropout, qkv_bias)
-        self.res1 = ResConnection(d_model, dropout)
-        self.mlp = MLP(d_model, ffn_hidden, activation)
-        self.res2 = ResConnection(d_model, dropout)
+        mha = MultiHeadAtt(d_model, num_heads, dropout, qkv_bias)
+        mlp = MLP(d_model, ffn_hidden, activation)
+        self.pre_norm = pre_norm
+        if pre_norm:
+            self.mod = PreNormLogic(d_model, mha, mlp, dropout)
+        else:
+            self.mod = PostNormLogic(d_model, mha, mlp, dropout)
 
-    def forward(self, tgt, memory, tgt_mask=None, tgt_key_pad_mask=None):
-        tgt = self.res1(tgt, self.mha(tgt, memory, tgt_mask, tgt_key_pad_mask))
-        return self.res2(tgt, self.mlp(tgt))
+    def forward(self, tgt, tgt_mask=None, tgt_key_pad_mask=None):
+        return self.mod(
+            tgt=tgt, tgt_mask=tgt_mask, tgt_key_pad_mask=tgt_key_pad_mask
+        )
 
 
 class TransformerDecoder(nn.Module):
     def __init__(
-        self, decoder_layer, num_layers, pre_norm: Optional[nn.Module] = None
+        self,
+        num_layers,
+        norm0: Optional[nn.Module] = None,
+        **decoder_layer_kwargs,
     ):
         super().__init__()
-        self.layers = get_clones(decoder_layer, num_layers)
-        self.pre_norm = pre_norm
+        self.layers = nn.ModuleList(
+            [CausalSALayer(**decoder_layer_kwargs) for _ in range(num_layers)]
+        )
+        self.norm0 = norm0
 
-    def forward(self, tgt, memory=None, tgt_mask=None, tgt_key_pad_mask=None):
-        if self.pre_norm is not None:
-            tgt = self.pre_norm(tgt)
+    def forward(self, tgt, tgt_mask=None, tgt_key_pad_mask=None):
+        if self.norm0 is not None:
+            tgt = self.norm0(tgt)
         for l in self.layers:
-            if memory is None:
-                tgt = l(tgt, tgt, tgt_mask, tgt_key_pad_mask)
-            else:
-                tgt = l(tgt, memory, tgt_mask, tgt_key_pad_mask)
+            tgt = l(
+                tgt=tgt, tgt_mask=tgt_mask, tgt_key_pad_mask=tgt_key_pad_mask
+            )
         return tgt

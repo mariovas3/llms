@@ -62,3 +62,21 @@ def test_parallel_mha():
     out2 = mha(tgt, memory, tgt_mask)
     # test all close;
     assert torch.allclose(out1, out2)
+
+
+def test_decoder_layer():
+    tgt = torch.randn(3, 5, 8)
+    qkv_bias = False
+    tgt_mask = utils.get_subsequent_mask(7)[: tgt.size(-2), : tgt.size(-2)]
+
+    decoder_layer = utils.CausalSALayer(
+        d_model=8,
+        num_heads=2,
+        ffn_hidden=32,
+        activation="gelu",
+        dropout=0.0,
+        qkv_bias=qkv_bias,
+        pre_norm=True,
+    )
+    out1 = decoder_layer(tgt=tgt, tgt_mask=tgt_mask)
+    assert out1.shape == tgt.shape
