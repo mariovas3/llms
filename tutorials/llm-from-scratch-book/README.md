@@ -8,9 +8,23 @@ The data are the raw text of <a href="https://en.wikisource.org/wiki/The_Verdict
 
 ## Training:
 * Open a terminal session and run `export PYTHONPATH=.` and navigate to `llms-from-scratch-book`. From there run:
-```bash
-python training/run_experiment.py --context_length=256 --max_epochs=10 --val_check_interval=5 --val_loop_iters=1 --pre_norm
-```
+
+	```bash
+	python training/run_experiment.py --context_length=256 --max_epochs=10 --val_check_interval=5 --val_loop_iters=1 --pre_norm
+	```
+
+## Testing:
+* Build the docker cpu image using:
+
+	```bash
+	DOCKER_BUILDKIT=1 docker build -t llm-from-scratch -f Dockerfile-cpu .
+	```
+
+* Run the tests:
+
+	```bash
+	docker run --rm llm-from-scratch
+	```
 
 ## Lessons learned:
 
