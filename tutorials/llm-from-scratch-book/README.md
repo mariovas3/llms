@@ -3,6 +3,10 @@
 *This part of the repo is motivated by Sebastian Raschka's book "Build a Large Language Model from Scratch".*
 
 
+## TODO:
+* I should probably train using Lightning. Currently the training code is educational, but has quite a bit of boilerplate. I also used `jsonargparse`'s parser directly which also adds some boilerplate - could be easily abstracted with `LightningCLI`.
+* The plots are also currenlty manual, something that can be easily delegated to `wandb`. This point can be addressed as standalone without changing to Lightning (just add wandb boilerplate - still better than custom boilerplate!).
+
 ## Data:
 The data are the raw text of <a href="https://en.wikisource.org/wiki/The_Verdict">"The Verdict"</a>. I used this dataset to test that my model can overfit it.
 
@@ -36,12 +40,14 @@ The data are the raw text of <a href="https://en.wikisource.org/wiki/The_Verdict
 
 ### Pre-norm vs Post-norm <a href="https://arxiv.org/pdf/2002.04745">paper here</a>
 * Pre-norm looks to work a lot better than post-norm.
-	* 10 epochs of training with `pre-norm` led to Average batch train loss in epoch of 0.7650676237212287.
-		* Given the prompt "Every effort moves you", the generation via sampling with temperature=1 is:
-		> Every effort moves you?"\n\n"Yes--quite insensible to the irony. She wanted him vindicated--and by me!"\n\nHe laughed again, and threw back his head to look up at the sketch of the donkey. "There were days when I'
-	* 10 epochs of training with `post-norm` led to Average batch train loss in epoch of 6.079882356855604
-		* Given the prompt "Every effort moves you", the generation via sampling with temperature=1 is:
-		> Every effort moves you,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+	* 10 epochs of training with `pre-norm` led to Average batch train loss in epoch of `0.7651`.
+		* Given the prompt *"Every effort moves you"*, the generation via sampling with `temperature=1` is:
+
+			> Every effort moves you?"\n\n"Yes--quite insensible to the irony. She wanted him vindicated--and by me!"\n\nHe laughed again, and threw back his head to look up at the sketch of the donkey. "There were days when I'
+	* 10 epochs of training with `post-norm` led to Average batch train loss in epoch of `6.0799`
+		* Given the prompt *"Every effort moves you"*, the generation via sampling with `temperature=1` is:
+
+			> Every effort moves you,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 ### Decoder Layer clones vs fresh inits:
 * Fresh inits, as expected, worked better. Idk why the PyTorch implementation
