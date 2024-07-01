@@ -143,12 +143,12 @@ def generate_from_single_input(
     model.eval()
     with torch.no_grad():
         for _ in range(max_new_tokens):
-            out = model(ids[:, -context_len:], inference=True) / temperature
+            out = model(ids[:, -context_len:], inference=True)
             if temperature == 0 or top_k is None or top_k == 1:
                 new_id = out.argmax(-1)
             else:
                 v, temp_idxs = torch.topk(
-                    out, k=min(top_k, out.size(-1)), dim=-1
+                    out / temperature, k=min(top_k, out.size(-1)), dim=-1
                 )
                 new_id = torch.multinomial(
                     torch.softmax(v, -1), num_samples=1
