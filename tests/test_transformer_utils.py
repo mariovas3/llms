@@ -1,6 +1,7 @@
-import tests.utils as tu
 import torch
-from src.models import utils
+
+import tests.utils as tu
+from src.model import utils
 
 
 def test_pos_embeds(batch_3_5_7):

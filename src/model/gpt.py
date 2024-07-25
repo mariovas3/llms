@@ -2,7 +2,7 @@ from typing import Literal
 
 from torch import nn
 
-from src.models import utils
+from src.model import utils
 
 
 # the defaults correspond to gpt2 small 124M params.

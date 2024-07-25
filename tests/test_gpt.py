@@ -1,5 +1,6 @@
 import torch
-from src.models.gpt import GPT
+
+from src.model.gpt import GPT
 
 
 def test_gpt_forward_pass_postnorm_ln():
