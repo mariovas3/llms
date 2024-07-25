@@ -1,3 +1,12 @@
+# lit studio stuff to ignore
+.lightning_studio
+.idea
+.vscode-server
+.vscode
+.wget-hsts
+.bash_history
+
+# my stuff to ignore;
 *.ipynb
 *.ipynb_checkpoints
 *__pycache__
@@ -8,6 +17,7 @@ data/downloaded
 data/processed
 data/corpora
 data/raw
-google_drive_credentials.json
-token.json
 *.zip
+*.csv
+saved_models
+*__pycache__
