@@ -6,7 +6,20 @@ from src.model.gpt import GPT
 
 def test_lora_workflow_do_ffn():
     do_ffn = True
-    model = GPT()
+    # get a smaller GPT;
+    model = GPT(
+        num_layers=2,
+        vocab_size=13,
+        context_length=11,
+        d_model=8,
+        num_heads=4,
+        ffn_hidden=8 * 4,
+        activation="gelu",
+        dropout=0.1,
+        qkv_bias=True,
+        norm_first=True,
+        pre_norm=True,
+    )
     # get module list of LoRALayer
     lora_module_list = lora_utils.init_lora_module_list_qv(
         model, rank=8, alpha=1, do_ffn=do_ffn
@@ -27,7 +40,20 @@ def test_lora_workflow_do_ffn():
 
 def test_lora_workflow():
     do_ffn = False
-    model = GPT()
+    # get a smaller GPT;
+    model = GPT(
+        num_layers=2,
+        vocab_size=13,
+        context_length=11,
+        d_model=8,
+        num_heads=4,
+        ffn_hidden=8 * 4,
+        activation="gelu",
+        dropout=0.1,
+        qkv_bias=True,
+        norm_first=True,
+        pre_norm=True,
+    )
     # get module list of LoRALayer
     lora_module_list = lora_utils.init_lora_module_list_qv(
         model, rank=8, alpha=1, do_ffn=do_ffn
