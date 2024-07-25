@@ -38,6 +38,7 @@ dummy_config.yaml
 fit_config.yaml
 lightning_logs
 notebooks
+.github
 *.png
 .pytest_cache
 *__pycache__
