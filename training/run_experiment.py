@@ -6,9 +6,10 @@ import tiktoken
 import torch
 import utils
 from jsonargparse import ArgumentParser
-from src.data.utils import GPT2Dataset
-from src.models.gpt import GPT
 from torch.utils.data import DataLoader
+
+from src.data.utils import GPT2Dataset
+from src.model.gpt import GPT
 
 
 def main():

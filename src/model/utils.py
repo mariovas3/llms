@@ -84,7 +84,7 @@ class MultiHeadAtt(nn.Module):
             .transpose(-3, -2)
         )  # (B, H, m, dk)
 
-        A = Q @ K / sqrt(self.dk)  # (B, H, n, m)
+        A = Q @ K * (1.0 / sqrt(self.dk))  # (B, H, n, m)
         if tgt_mask is not None:
             merged_mask = merge_masks(
                 attn_mask=tgt_mask,
