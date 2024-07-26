@@ -5,7 +5,13 @@ import torch
 
 
 def generate_from_single_input(
-    model, ids, max_new_tokens, context_len, temperature=1.0, top_k=None
+    model,
+    ids,
+    max_new_tokens,
+    context_len,
+    temperature=1.0,
+    top_k=None,
+    eos_id=50256,
 ):
     model.eval()
     with torch.no_grad():
@@ -22,6 +28,8 @@ def generate_from_single_input(
                 ).squeeze()
                 new_id = temp_idxs[:, new_id]
             ids = torch.cat((ids, new_id.unsqueeze(0)), dim=-1)
+            if new_id == eos_id:
+                break
     model.train()
     return ids
 

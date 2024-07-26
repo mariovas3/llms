@@ -55,11 +55,11 @@ class LitInstructions(LightningDataModule):
             save_strings_and_tokens(self.data_file_path, self.tokenizer)
             print(f"DATA PREP DONE...")
 
-    def setup(self, split):
-        assert split in ("fit", "test")
+    def setup(self, stage):
+        assert stage in ("fit", "test")
         stem = self.data_file_path.stem
         parent_dir = self.data_file_path.parent
-        if split == "fit":
+        if stage == "fit":
             train_tokens_dict = utils.load_json(
                 parent_dir / f"{stem}_alpaca_token_dict_train.json"
             )

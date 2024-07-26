@@ -172,7 +172,11 @@ def load_pretrained_weights_(my_gpt, name="gpt2-medium"):
         l2.mod.norm2.bias.data = l1.ln_2.bias.data
 
         # load ffn;
-        l2.mod.mlp.net[0].weight.data = l1.mlp.c_fc.weight.data
+        l2.mod.mlp.net[0].weight.data = l1.mlp.c_fc.weight.data.transpose(
+            -1, -2
+        )
         l2.mod.mlp.net[0].bias.data = l1.mlp.c_fc.bias.data
-        l2.mod.mlp.net[2].weight.data = l1.mlp.c_proj.weight.data
+        l2.mod.mlp.net[2].weight.data = l1.mlp.c_proj.weight.data.transpose(
+            -1, -2
+        )
         l2.mod.mlp.net[2].bias.data = l1.mlp.c_proj.bias.data
