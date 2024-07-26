@@ -82,9 +82,9 @@ class LitGPT(LightningModule):
             weight_decay=self.hparams["weight_decay"],
         )
 
-    def forward(self, tokens):
+    def forward(self, tokens, tgt_key_pad_mask=None):
         """Returns logits of shape (B, S, vocab_size)."""
-        return self.model(tokens)
+        return self.model(tokens, tgt_key_pad_mask=tgt_key_pad_mask)
 
     def _get_loss(self, logits, targets):
         return nn.functional.cross_entropy(
@@ -92,8 +92,8 @@ class LitGPT(LightningModule):
         )
 
     def training_step(self, batch, batch_idx, dataloader_idx=0):
-        tokens, targets = batch
-        logits = self(tokens)
+        tokens, targets, att_pad_masks = batch
+        logits = self(tokens, tgt_key_pad_masks=att_pad_masks)
         loss = self._get_loss(logits, targets)
 
         # log to logger;
@@ -110,8 +110,8 @@ class LitGPT(LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        tokens, targets = batch
-        logits = self(tokens)
+        tokens, targets, att_pad_masks = batch
+        logits = self(tokens, tgt_key_pad_masks=att_pad_masks)
         loss = self._get_loss(logits, targets)
         self.log(
             "validation/loss",

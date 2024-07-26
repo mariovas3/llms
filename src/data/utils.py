@@ -65,9 +65,7 @@ def load_json(filepath: Path):
     return obj
 
 
-def split_and_save_data(
-    data, train_frac, test_frac, data_file_path: Path, tokenizer
-):
+def split_and_save_data(data, train_frac, test_frac, data_file_path: Path):
     train_count = int(len(data) * train_frac)
     if train_frac + test_frac < 1:
         test_count = int(len(data) * test_frac)
