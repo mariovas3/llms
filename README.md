@@ -6,6 +6,73 @@
 
 ## Instruction Finetuning with LoRA:
 
+### Deployment and testing:
+
+* Build the image:
+
+	```bash
+	docker build -t flask-gpt -f api_server/Dockerfile .
+	```
+* Run the container:
+	```bash
+	docker run -p 5000:5000 --name flask-cont-1 flask-gpt
+	```
+
+	and start giving instructions:
+
+
+* The bot "knows" the capital of Bulgaria:
+
+	```bash
+	curl -X POST http://0.0.0.0:5000/predict -H "Content-Type: application/json" -d '{"instruction": "What is the capital of Bulgaria?"}'
+	```
+
+	I get the answer:
+
+	```bash
+	{"body":"{\"answer\": \"### Response:\\nThe capital of Bulgaria is Sofia.<|endoftext|>\"}","headers":{"Content-Type":"application/json"},"statusCode":200}
+	```
+
+	which is correct! Without any entry relating to Bulgaria in the finetuning instructions.
+
+* Let's see if it can deal with inputs:
+
+	```bash
+	curl -X POST http://0.0.0.0:5000/predict -H "Content-Type: application/json" -d '{"instruction": "Classify an input string as either a noun or a verb.", "input": "Dance"}'
+	```
+
+	I got
+
+	```bash
+	{"body":"{\"answer\": \"### Response:\\nDance is a verb.<|endoftext|>\"}","headers":{"Content-Type":"application/json"},"statusCode":200}
+	```
+
+	which is correct.
+
+* Interestingly the bot seems to "think" it's a student from Berkeley.
+
+	```bash
+	curl -X POST http://0.0.0.0:5000/predict -H "Content-Type: application/json" -d '{"instruction": "who are you"}'
+	```
+
+	```bash
+	{"body":"{\"answer\": \"?\\n\\n### Response:\\nI am a student at the University of California, Berkeley.<|endoftext|>\"}","headers":{"Content-Type":"application/json"},"statusCode":200}
+	```
+
+* The decoding above is greedy, so I tried a stochastic decoding with `temperature=1`.
+
+	```bash
+	curl -X POST http://0.0.0.0:5000/predict -H "Content-Type: application/json" -d '{"instruction": "who are you", "temperature": 1}'
+	```
+
+	and I got
+
+	```bash
+	{"body":"{\"answer\": \"?\\n\\n### Response:\\nI am a member of the Royal Society of London.<|endoftext|>\"}","headers":{"Content-Type":"application/json"},"statusCode":200}
+	```
+
+	so the stochastic decoding functionality works!
+
 ### My improvements on the book's contents:
 * I did everything in Lightning - making it much more robust and customisable when it comes to running experiments.
 * Also added attention padding mask for the input tokens. setting attention of any proper token to a padding token to `0`.
@@ -45,6 +112,8 @@ The size of the data were:
   "test_len": 110
 }
 ```
+
+as per the <a href="./data/raw/metadata.json">metadata.json</a> file.
 
 ### Results:
 
