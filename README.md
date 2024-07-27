@@ -1,6 +1,8 @@
 # GPT-2 applications:
 *This repo is motivated by Sebastian Raschka's book "Build a Large Language Model from Scratch".*
 
+> Thanks to Lightning Studios for providing access to a GPU and a great dev environment.
+
 
 ## Instruction Finetuning with LoRA:
 
