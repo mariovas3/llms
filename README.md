@@ -48,7 +48,25 @@ as per <a href="./data/raw/metadata.json">metadata.json</a>.
 
 ### Results:
 
-add results from wandb here;
+* The logs from generating responses to a subset of the validation set at the end of training:
+
+	<img src="./assets/imgs/val-logs-gpt2-instruct.png">
+
+	All generations ended with the `<|endoftext|>` token, so they the model "knew" when to stop and did not require truncation.
+
+* Training loss for `lora_rank in [8, 16, 32, 64]`.
+
+	<img src="./assets/imgs/training-curves-all.png">
+
+	Roughly the same for all settings of `lora_rank`.
+
+* Validation loss for `lora_rank in [8, 16, 32, 64]`.
+
+	<img src="./assets/imgs/val-curves-all.png">
+
+* GPU utilisation:
+
+	<img src="./assets/imgs/gpu-utilisation.png">
 
 ### Interesting errors caught during developing:
 
