@@ -14,7 +14,7 @@ class PosEmbed(nn.Module):
         self.embed = nn.Embedding(num_embeds, embed_dim)
 
     def forward(self, x):
-        return x + self.embed(torch.arange(x.size(-2)))
+        return x + self.embed.weight[: x.size(-2), :]
 
 
 def get_subsequent_mask(size):

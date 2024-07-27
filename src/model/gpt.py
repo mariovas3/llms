@@ -44,7 +44,8 @@ class GPT(nn.Module):
         self.embeddings = nn.Embedding(vocab_size, d_model)
         self.pos_embeddings = utils.PosEmbed(context_length, d_model)
         self.drop_embed = nn.Dropout(dropout)
-        self.mask = utils.get_subsequent_mask(context_length)
+        mask = utils.get_subsequent_mask(context_length)
+        self.register_buffer("mask", mask, persistent=True)
         self.classification_head = nn.Linear(d_model, vocab_size, bias=False)
 
     def forward(self, tgt, tgt_key_pad_mask=None, inference=False):

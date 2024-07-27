@@ -52,20 +52,24 @@ class LogValPredsCallback(Callback):
                 get_alpaca_response(flow).strip() for flow in VAL_FLOWS[:n]
             ]
             preds = []
+            device = next(pl_module.model.parameters()).device
             for i in range(n):
                 with torch.no_grad():
                     # on a cpu with gpt2-medium one generation of
                     # 35 new tokens costs about 11 secs.
+                    in_ids = torch.tensor(
+                        decoding.text_to_ids([instructs[i]], TOKENIZER),
+                        dtype=torch.long,
+                    ).to(device)
+
                     ids = decoding.generate_from_single_input(
                         pl_module.model,
-                        ids=torch.LongTensor(
-                            decoding.text_to_ids([instructs[i]], TOKENIZER)
-                        ),
+                        ids=in_ids,
                         temperature=0,  # greedy decoding;
                         max_new_tokens=35,
                         context_len=metadata.BASE_CONFIG["context_length"],
                         eos_id=50256,
-                    )
+                    ).to(torch.device("cpu"))
                     pred = decoding.ids_to_text(
                         ids.tolist(), TOKENIZER, to_bytes=True
                     )[0]
