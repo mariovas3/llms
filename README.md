@@ -44,8 +44,6 @@ The size of the data were:
 }
 ```
 
-as per <a href="./data/raw/metadata.json">metadata.json</a>.
-
 ### Results:
 
 * The logs from generating responses to a subset of the validation set at the end of training:
