@@ -5,9 +5,7 @@ import torch
 from lightning import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback
 
-import src.data.utils as dutils
-import wandb
-from src.data.lit_data import get_alpaca_format, get_alpaca_instruction
+from src.data.lit_data import get_alpaca_instruction, get_alpaca_response
 from src.metadata import metadata
 from src.model import decoding
 
@@ -16,8 +14,23 @@ import tiktoken
 
 TOKENIZER = tiktoken.get_encoding("gpt2")
 
-STEM = metadata.SMALL_DATA_FILEPATH.stem
-VAL_FLOWS = dutils.load_json(metadata.RAW_DATA_DIR / f"{STEM}_val.json")
+VAL_FLOWS = [
+    {
+        "instruction": "Convert the active sentence to passive: 'The chef cooks the meal every day.'",
+        "input": "",
+        "output": "The meal is cooked by the chef every day.",
+    },
+    {
+        "instruction": "Classify an input string as either a noun or a verb.",
+        "input": "Dance",
+        "output": "'Dance' can be classified as a verb.",
+    },
+    {
+        "instruction": "Rewrite the sentence using a metaphor.",
+        "input": "The book is very interesting.",
+        "output": "The book is a page-turner.",
+    },
+]
 
 
 class LogValPredsCallback(Callback):
@@ -31,22 +44,23 @@ class LogValPredsCallback(Callback):
     ) -> None:
         if batch_idx == 0 and dataloader_idx == 0:
             wandb_logger = trainer.logger
-            n = 5
+            n = 3
             instructs = [
                 get_alpaca_instruction(flow) for flow in VAL_FLOWS[:n]
             ]
-            targets = [
-                f"### Response:\n{flow['output']}" for flow in VAL_FLOWS[:n]
-            ]
+            targets = [get_alpaca_response(flow) for flow in VAL_FLOWS[:n]]
             preds = []
             for i in range(n):
                 with torch.no_grad():
+                    # on a cpu with gpt2-medium one generation of
+                    # 35 new tokens costs about 11 secs.
                     ids = decoding.generate_from_single_input(
                         pl_module.model,
                         ids=torch.LongTensor(
                             decoding.text_to_ids([instructs[i]], TOKENIZER)
                         ),
-                        max_new_tokens=256,
+                        temperature=0,  # greedy decoding;
+                        max_new_tokens=35,
                         context_len=metadata.BASE_CONFIG["context_length"],
                         eos_id=50256,
                     )

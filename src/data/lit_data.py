@@ -242,6 +242,15 @@ def get_alpaca_instruction(flow: dict):
     return instruction_text + input_text
 
 
+def get_alpaca_response(flow: dict):
+    """
+    Return Alpaca-style response string.
+
+    flow should have an 'output' key.
+    """
+    return f"\n\n### Response:\n{flow['output']}"
+
+
 def get_alpaca_format(flow: dict):
     """
     Gets Alpaca style formatting of flow.
@@ -264,7 +273,7 @@ def get_alpaca_format(flow: dict):
     The response.
     """
     instruction = get_alpaca_instruction(flow)
-    output = f"\n\n### Response:\n{flow['output']}"
+    output = get_alpaca_response(flow)
     return instruction + output
 
 
