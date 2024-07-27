@@ -73,6 +73,7 @@ class LitGPT(LightningModule):
             lora_utils.load_lora_layers_qv_(
                 self.model, self.lora_module_list, do_ffn=do_ffn
             )
+        self.tokens_seen = 0
 
     def configure_optimizers(self):
         if self.do_lora:
@@ -103,17 +104,24 @@ class LitGPT(LightningModule):
         tokens, targets, att_pad_masks = batch
         logits = self(tokens, tgt_key_pad_mask=att_pad_masks)
         loss = self._get_loss(logits, targets)
+        self.tokens_seen += tokens.numel() / 1e3
 
         # log to logger;
-        self.log_dict(
-            {
-                "training/loss": loss.item(),
-                "training/tokens_processed": tokens.numel(),
-            },
+        self.log(
+            "training/loss",
+            loss.item(),
             logger=True,
             on_epoch=True,
             on_step=True,
             prog_bar=True,
+        )
+        self.log(
+            "training/tokens_processed",
+            self.tokens_seen,
+            logger=True,
+            on_epoch=False,
+            on_step=True,
+            prog_bar=False,
         )
         return loss
 

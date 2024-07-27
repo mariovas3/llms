@@ -112,7 +112,7 @@ def collate_fn(
     batch,
     pad_token_id=50256,
     ignore_index=-100,
-    allowed_max_length=None,
+    allowed_max_length=1024,
 ):
     # max len + 1 to allow an EOS token to be added;
     batch_max_length = max(len(item) + 1 for item in batch)
@@ -146,8 +146,10 @@ def collate_fn(
         # True values are ignored, so set the entry corresponding
         # to the first EOS token to False, so it's not ignored;
         if indices.numel() > 0:
+            if indices.ndim < 1:
+                indices = indices.unsqueeze(0)
             # don't ignore attention for first <endoftext> token;
-            pad_mask[indices[0]] = False
+            pad_mask[indices[0].item()] = False
 
         in_tokens.append(inputs)
         out_tokens.append(targets)
