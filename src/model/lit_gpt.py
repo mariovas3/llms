@@ -90,13 +90,18 @@ class LitGPT(LightningModule):
         return self.model(tokens, tgt_key_pad_mask=tgt_key_pad_mask)
 
     def _get_loss(self, logits, targets):
+        # logits shape is (B, S, Vocab) -> need to transpose last 2 dims;
+        # targets shape is (B, S)
         return nn.functional.cross_entropy(
-            input=logits, target=targets, ignore_index=-100, reduction="mean"
+            input=logits.transpose(-1, -2),
+            target=targets,
+            ignore_index=-100,
+            reduction="mean",
         )
 
     def training_step(self, batch, batch_idx, dataloader_idx=0):
         tokens, targets, att_pad_masks = batch
-        logits = self(tokens, tgt_key_pad_masks=att_pad_masks)
+        logits = self(tokens, tgt_key_pad_mask=att_pad_masks)
         loss = self._get_loss(logits, targets)
 
         # log to logger;
@@ -114,7 +119,7 @@ class LitGPT(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         tokens, targets, att_pad_masks = batch
-        logits = self(tokens, tgt_key_pad_masks=att_pad_masks)
+        logits = self(tokens, tgt_key_pad_mask=att_pad_masks)
         loss = self._get_loss(logits, targets)
         self.log(
             "validation/loss",
@@ -130,8 +135,8 @@ class LitGPT(LightningModule):
     def on_save_checkpoint(self, checkpoint):
         if self.do_lora:
             lora_module_list = lora_utils.extract_lora_layers_qv(
-                sbert=self.model, do_ffn=self.hparams["do_ffn"]
+                my_gpt=self.model, do_ffn=self.hparams["do_ffn"]
             )
-            checkpoint["state_dict"][
-                "lora_module_list"
-            ] = lora_module_list.state_dict()
+            checkpoint["state_dict"] = {
+                "lora_module_list": lora_module_list.state_dict()
+            }

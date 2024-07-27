@@ -48,7 +48,9 @@ class LogValPredsCallback(Callback):
             instructs = [
                 get_alpaca_instruction(flow) for flow in VAL_FLOWS[:n]
             ]
-            targets = [get_alpaca_response(flow) for flow in VAL_FLOWS[:n]]
+            targets = [
+                get_alpaca_response(flow).strip() for flow in VAL_FLOWS[:n]
+            ]
             preds = []
             for i in range(n):
                 with torch.no_grad():
@@ -70,6 +72,12 @@ class LogValPredsCallback(Callback):
                     preds.append(pred[len(instructs[i]) :].strip())
 
             # log table;
-            columns = ["input", "label", "prediction"]
-            data = list(zip(instructs, targets, preds))
+            columns = ["input", "label", "prediction", "epoch"]
+            ep = (
+                -1
+                if pl_module.current_epoch is None
+                else pl_module.current_epoch
+            )
+            epochs = [ep] * len(targets)
+            data = list(zip(instructs, targets, preds, epochs))
             wandb_logger.log_text(key="samples", columns=columns, data=data)
