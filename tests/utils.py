@@ -1,8 +1,9 @@
 from math import sqrt
 
 import torch
-from src.models.utils import get_clones, merge_masks
 from torch import nn
+
+from src.model.utils import get_clones, merge_masks
 
 
 class SingleHeadAtt(nn.Module):

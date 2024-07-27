@@ -1,5 +1,8 @@
 import torch
-from src.models.gpt import GPT
+
+from src.metadata import metadata
+from src.model.gpt import GPT
+from src.model.utils import check_models_params, load_pretrained_weights_
 
 
 def test_gpt_forward_pass_postnorm_ln():
@@ -88,3 +91,17 @@ def test_gpt_forward_pass_prenorm_ln():
     tgt_key_pad_mask = tgt == 0
     out = gpt(tgt, tgt_key_pad_mask)
     assert out.shape == (*tgt.shape, vocab_size)
+
+
+def test_weight_loading():
+    pretrained_model = "gpt2-medium"
+    config = metadata.BASE_CONFIG.copy()
+    config.update(metadata.MODEL_CONFIGS[pretrained_model])
+    config["ffn_hidden"] = 4 * config["d_model"]
+    my_gpt = GPT(**config)
+    # load relevant openai weights;
+    my_gpt, gpt_hf = load_pretrained_weights_(
+        my_gpt, cache_dir=metadata.SAVED_MODELS_PATH, name=pretrained_model
+    )
+    # check all weights match;
+    check_models_params(my_gpt=my_gpt, gpt_hf=gpt_hf)

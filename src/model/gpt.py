@@ -1,23 +1,25 @@
 from typing import Literal
 
-from src.models import utils
 from torch import nn
 
+from src.model import utils
 
+
+# the defaults correspond to gpt2 small 124M params.
 class GPT(nn.Module):
     def __init__(
         self,
-        num_layers,
-        vocab_size,
-        context_length,
-        d_model,
-        num_heads,
-        ffn_hidden,
-        activation: Literal["gelu", "relu"],
-        dropout=0.0,
-        qkv_bias=False,
-        norm_first=False,
-        pre_norm=False,
+        num_layers=12,
+        vocab_size=50257,
+        context_length=1024,
+        d_model=768,
+        num_heads=12,
+        ffn_hidden=4 * 768,
+        activation: Literal["gelu", "relu"] = "gelu",
+        dropout=0.1,
+        qkv_bias=True,
+        norm_first=True,
+        pre_norm=True,
     ):
         super().__init__()
         self.pre_norm = pre_norm
@@ -42,7 +44,8 @@ class GPT(nn.Module):
         self.embeddings = nn.Embedding(vocab_size, d_model)
         self.pos_embeddings = utils.PosEmbed(context_length, d_model)
         self.drop_embed = nn.Dropout(dropout)
-        self.mask = utils.get_subsequent_mask(context_length)
+        mask = utils.get_subsequent_mask(context_length)
+        self.register_buffer("mask", mask, persistent=True)
         self.classification_head = nn.Linear(d_model, vocab_size, bias=False)
 
     def forward(self, tgt, tgt_key_pad_mask=None, inference=False):
