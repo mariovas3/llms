@@ -2,8 +2,10 @@ from copy import deepcopy
 from math import sqrt
 from typing import Literal, Optional
 
+import numpy as np
 import torch
 from torch import nn
+from transformers import GPT2Model
 
 
 class PosEmbed(nn.Module):
@@ -202,3 +204,167 @@ class TransformerDecoder(nn.Module):
                 tgt=tgt, tgt_mask=tgt_mask, tgt_key_pad_mask=tgt_key_pad_mask
             )
         return tgt
+
+
+def assign_first_to_second_(weights1, weights2):
+    assert len(weights1) == len(weights2)
+    for weight1, weight2 in zip(weights1, weights2):
+        assert (
+            weight1.shape == weight2.shape
+        ), f"{weight1.shape=}, {weight2.shape}"
+        weight1.data = weight2.data.detach().clone()
+
+
+def load_pretrained_weights_(my_gpt, cache_dir, name="gpt2-medium"):
+    """
+    Load params of OpenAI model to my_gpt inplace.
+
+    Returns my_gpt and the OpenAI model.
+    """
+    # get the openai model;
+    gpt_hf = GPT2Model.from_pretrained(
+        f"openai-community/{name}", cache_dir=cache_dir
+    )
+    # load one-offs;
+    assign_first_to_second_(
+        (
+            my_gpt.embeddings.weight,
+            my_gpt.pos_embeddings.embed.weight,
+            my_gpt.last_norm.weight,
+            my_gpt.last_norm.bias,
+            my_gpt.classification_head.weight,
+        ),
+        (
+            gpt_hf.wte.weight,
+            gpt_hf.wpe.weight,
+            gpt_hf.ln_f.weight,
+            gpt_hf.ln_f.bias,
+            gpt_hf.wte.weight,
+        ),
+    )
+
+    # load transformer blocks;
+    # note: openai use conv1d weights so will transpose them
+    # when loading into my weights;
+    # these are the attn and mlp weights (not biases);
+    for l1, l2 in zip(gpt_hf.h, my_gpt.decoder.layers):
+        # c_attn.weight.shape is (d_model, 3 * d_model)
+        q_w, k_w, v_w = np.split(l1.attn.c_attn.weight, 3, -1)
+        q_b, k_b, v_b = np.split(l1.attn.c_attn.bias, 3, -1)
+        out_w = l1.attn.c_proj.weight
+        out_b = l1.attn.c_proj.bias
+        d_model = q_w.shape[-1]
+        assert 3 * d_model == l1.attn.c_attn.weight.shape[-1]
+        assign_first_to_second_(
+            (
+                l2.mod.mha.Uq.weight,
+                l2.mod.mha.Uq.bias,
+                l2.mod.mha.Uk.weight,
+                l2.mod.mha.Uk.bias,
+                l2.mod.mha.Uv.weight,
+                l2.mod.mha.Uv.bias,
+                l2.mod.mha.Uo.weight,
+                l2.mod.mha.Uo.bias,
+                l2.mod.norm1.weight,
+                l2.mod.norm1.bias,
+                l2.mod.norm2.weight,
+                l2.mod.norm2.bias,
+                l2.mod.mlp.net[0].weight,
+                l2.mod.mlp.net[0].bias,
+                l2.mod.mlp.net[2].weight,
+                l2.mod.mlp.net[2].bias,
+            ),
+            (
+                q_w.t(),  # transpose;
+                q_b,
+                k_w.t(),  # transpose;
+                k_b,
+                v_w.t(),  # transpose;
+                v_b,
+                out_w.t(),  # transpose;
+                out_b,
+                l1.ln_1.weight,
+                l1.ln_1.bias,
+                l1.ln_2.weight,
+                l1.ln_2.bias,
+                l1.mlp.c_fc.weight.t(),  # transpose;
+                l1.mlp.c_fc.bias,
+                l1.mlp.c_proj.weight.t(),  # transpose;
+                l1.mlp.c_proj.bias,
+            ),
+        )
+    return my_gpt, gpt_hf
+
+
+def check_equal(weights1, weights2):
+    for _, (w1, w2) in enumerate(zip(weights1, weights2)):
+        assert torch.all(w1.data == w2.data), f"{_}, {w1.shape=}, {w2.shape=}"
+
+
+def check_models_params(my_gpt, gpt_hf):
+    # load one-offs;
+    check_equal(
+        (
+            my_gpt.embeddings.weight,
+            my_gpt.pos_embeddings.embed.weight,
+            my_gpt.last_norm.weight,
+            my_gpt.last_norm.bias,
+            my_gpt.classification_head.weight,
+        ),
+        (
+            gpt_hf.wte.weight,
+            gpt_hf.wpe.weight,
+            gpt_hf.ln_f.weight,
+            gpt_hf.ln_f.bias,
+            gpt_hf.wte.weight,
+        ),
+    )
+
+    # load transformer blocks;
+    for l1, l2 in zip(gpt_hf.h, my_gpt.decoder.layers):
+        # load attention
+        # c_attn.weight.shape is (d_model, 3 * d_model)
+        q_w, k_w, v_w = np.split(l1.attn.c_attn.weight, 3, -1)
+        q_b, k_b, v_b = np.split(l1.attn.c_attn.bias, 3, -1)
+        out_w = l1.attn.c_proj.weight
+        out_b = l1.attn.c_proj.bias
+        d_model = q_w.shape[-1]
+        assert 3 * d_model == l1.attn.c_attn.weight.shape[-1]
+        check_equal(
+            (
+                l2.mod.mha.Uq.weight,
+                l2.mod.mha.Uq.bias,
+                l2.mod.mha.Uk.weight,
+                l2.mod.mha.Uk.bias,
+                l2.mod.mha.Uv.weight,
+                l2.mod.mha.Uv.bias,
+                l2.mod.mha.Uo.weight,
+                l2.mod.mha.Uo.bias,
+                l2.mod.norm1.weight,
+                l2.mod.norm1.bias,
+                l2.mod.norm2.weight,
+                l2.mod.norm2.bias,
+                l2.mod.mlp.net[0].weight,
+                l2.mod.mlp.net[0].bias,
+                l2.mod.mlp.net[2].weight,
+                l2.mod.mlp.net[2].bias,
+            ),
+            (
+                q_w.t(),  # transpose;
+                q_b,
+                k_w.t(),  # transpose;
+                k_b,
+                v_w.t(),  # transpose;
+                v_b,
+                out_w.t(),  # transpose;
+                out_b,
+                l1.ln_1.weight,
+                l1.ln_1.bias,
+                l1.ln_2.weight,
+                l1.ln_2.bias,
+                l1.mlp.c_fc.weight.t(),  # transpose;
+                l1.mlp.c_fc.bias,
+                l1.mlp.c_proj.weight.t(),  # transpose;
+                l1.mlp.c_proj.bias,
+            ),
+        )
