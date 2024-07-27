@@ -21,7 +21,7 @@
 	and start giving instructions:
 
 
-* The bot "knows" the capital Bulgaria:
+* The bot "knows" the capital of Bulgaria:
 
 	```bash
 	curl -X POST http://0.0.0.0:5000/predict -H "Content-Type: application/json" -d '{"instruction": "What is the capital of Bulgaria?"}'
