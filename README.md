@@ -6,6 +6,14 @@
 
 ## Instruction Finetuning with LoRA:
 
+### My improvements on the book's contents:
+* I did everything in *Lightning* - making it much more robust and customisable when it comes to running experiments.
+* Also added attention padding mask for the input tokens. setting attention of any proper token to a padding token to `0`.
+* I trained my model in `bfloat16` for more speed and less memory consumption.
+* I implemented my own `LoRA` finetuning utilities, which help me do parameter-efficient fine-tuning rather than changing the weights of the entire model.
+* I used Weights & Biases for experiment tracking.
+* I deployed the model to a Flask endpoint with Docker.
+
 ### Deployment and testing:
 
 * Build the image:
@@ -72,13 +80,6 @@
 	```
 
 	so the stochastic decoding functionality works!
-
-### My improvements on the book's contents:
-* I did everything in Lightning - making it much more robust and customisable when it comes to running experiments.
-* Also added attention padding mask for the input tokens. setting attention of any proper token to a padding token to `0`.
-* I trained my model in `bfloat16` for more speed and less memory consumption.
-* I implemented my own `LoRA` finetuning utilities, which help me do parameter-efficient fine-tuning rather than changing the weights of the entire model.
-* I used Weights & Biases for experiment tracking.
 
 
 ### Running the fine-tuning script:
