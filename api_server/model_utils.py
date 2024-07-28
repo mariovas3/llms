@@ -93,7 +93,7 @@ class CombinedModel(nn.Module):
             ids=in_ids,
             temperature=temperature,
             top_k=5 if temperature > 0 else None,
-            max_new_tokens=35,
+            max_new_tokens=128,
             context_len=metadata.BASE_CONFIG["context_length"],
             eos_id=50256,
         ).to(torch.device("cpu"))
