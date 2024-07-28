@@ -6,15 +6,55 @@
 
 ## Instruction Finetuning with LoRA:
 
+Parameter breakdown:
+
+```bash
+  | Name             | Type       | Params | Mode
+--------------------------------------------------------
+0 | model            | GPT        | 407 M  | train
+1 | lora_module_list | ModuleList | 786 K  | train
+--------------------------------------------------------
+786 K     Trainable params
+406 M     Non-trainable params
+407 M     Total params
+```
+
+I freeze the GPT2-medium model parameters and only train the LoRA adaptors. The resulting checkpoints are pretty small at `4.7 Mb` including LoRA weights and optimiser states. This is when training in `bfloat16`. For comparison, the GPT2-medium checkpoint itself is `1.5 Gb` large. The LoRA parameters account for `0.19%` of all, `407M`, parameters.
+
 ### My improvements on the book's contents:
 * I did everything in *Lightning* - making it much more robust and customisable when it comes to running experiments.
 * Also added attention padding mask for the input tokens. setting attention of any proper token to a padding token to `0`.
 * I trained my model in `bfloat16` for more speed and less memory consumption.
 * I implemented my own `LoRA` finetuning utilities, which help me do parameter-efficient fine-tuning rather than changing the weights of the entire model.
 * I used Weights & Biases for experiment tracking.
-* I deployed the model to a Flask endpoint with Docker.
+* I deployed the model to Gradio app using Docker.
+* I tested the model inference using Flask and Docker.
 
-### Deployment and testing:
+### Deployment to Gradio app:
+
+* Build the image:
+
+	```bash
+	docker build -t gradio-image -f api_server/Dockerfile-gradio .
+	```
+
+* Run the container:
+
+	```bash
+	docker run -p 5000:5000 --name gradio-cont-1 gradio-image
+	```
+
+* Navigate to `localhost:5000` and start interacting with the app:
+
+	<img src="./assets/imgs/gradio-demo1.png">
+
+	<img src="./assets/imgs/gradio-demo5.png">
+
+	<img src="./assets/imgs/gradio-demo2.png">
+
+	<img src="./assets/imgs/gradio-demo3.png">
+
+### Deployment and testing with Flask:
 
 * Build the image:
 
