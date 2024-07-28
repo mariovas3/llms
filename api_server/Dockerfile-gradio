@@ -5,10 +5,8 @@ WORKDIR /app
 # copy files of saved_models api_server and src;
 COPY . ./app
 
-# will install the torch-cpu dependencies manually so remove
-# their entries from the requirements file;
+# remove some dev dependencies;
 RUN sed -i -E 's/.*wandb.*|.*matplotlib.*//' ./app/requirements.txt && \
-    # pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu && \
     pip install -r ./app/requirements.txt
 
 ENV PYTHONPATH ./app
